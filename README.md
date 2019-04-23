@@ -41,7 +41,8 @@ del README.md
 #### Push to remote
 Run the following scripts:
 ```bash
-git commit -am "Initial project setup"
+git add .
+git commit -m "Initial project setup"
 git push origin master
 ```
 
