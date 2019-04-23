@@ -8,7 +8,7 @@
 * Unzip and rename the folder to the new project name
 
 #### Git setup
->> Requires that a new repository will be already created!
+> Requires that a new repository will be already created!
 * Enter project and run the following scripts:
 ```bash
 git init
