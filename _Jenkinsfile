@@ -80,7 +80,15 @@ node(label: 'book') {
         UnityApp = isUnix() ? UnixUnityApp : WinUnityApp
 
         def buildOnlyBooks = (params.build_only_books.length() > 0 ? params.build_only_books.split(",") : []) as String[]
-        def bookConfig = readFile "book.config"
+        def bookConfig
+        def bookConfigDescription = "Please check is `book.config` file existing and configured properly " +
+                "(there are one of few rows with book id)." +
+                "\nINFO: actual books configuration - https://admin.bookful.inceptionxr.com/books\n\n"
+        try {
+            bookConfig = readFile "book.config"
+        } catch (Exception e) {
+            error("Issue with reading `book.config`: ${e.getMessage()}\n${bookConfigDescription}")
+        }
         def bookIds = bookConfig.split("\n")
         if (bookIds.length == 1) {
             def bookId = bookIds[0].replace('\r', '')
@@ -92,6 +100,9 @@ node(label: 'book') {
                     books.push([id: bookId, BSUAssetsRootFolderPath: "Assets/BSU/Book_${i + 1}"])
                 }
             }
+        }
+        if (bookIds.any { it.length() == 0 }) {
+            error("Looks `book.config` weren't configured properly.\n${bookConfigDescription}")
         }
     }
 
