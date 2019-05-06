@@ -31,11 +31,15 @@ git submodule add https://github.com/InceptionXR/GameKit.git
 git submodule add https://github.com/InceptionXR/BookPlayer.git
 git submodule add https://github.com/InceptionXR/IARCore.git
 ```
+### Get back to root folder
+```bash
+cd ...
+```
 
 ### Delete template files
 Run the following scripts:
 ```bash
-del README.md
+rm README.md
 ```
 
 #### Push to remote
