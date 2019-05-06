@@ -32,6 +32,7 @@ git submodule add https://github.com/InceptionXR/BookPlayer.git
 git submodule add https://github.com/InceptionXR/IARCore.git
 ```
 ### Get back to root folder
+Run the following scripts:
 ```bash
 cd ...
 ```
