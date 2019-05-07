@@ -53,8 +53,9 @@ git push origin master
 
 ##### All Set! 🎉
 
-#### Tell Jenkins to Build the book
-* In the Root Folder (e.g. Book-BlahBlah, remove the underscore from _Jenkinsfile (make it: Jenkinsfile)
+### Tell Jenkins to Build the book
+#### Do the following file changes
+* In the Root Folder (e.g. Book-BlahBlah), remove the underscore from _Jenkinsfile (make it: Jenkinsfile)
 * Open book.config with notepad/textedit (not worpad), add the book ID of the book as it appears in Gandalf (e.g. "-ySA3o3Rj").
 
 #### Push to remote
