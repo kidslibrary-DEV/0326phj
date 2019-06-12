@@ -636,7 +636,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 580983795211568554}
   m_LocalRotation: {x: -0.70710665, y: 0.00000019861231, z: -0.70710695, w: 0.0000001986124}
-  m_LocalPosition: {x: 0, y: -0.0087, z: -0.06709}
+  m_LocalPosition: {x: 0, y: -0.0091, z: -0.06709}
   m_LocalScale: {x: 0.028441675, y: 0.028441675, z: 0.02844165}
   m_Children: []
   m_Father: {fileID: -3425950620740595793}
@@ -908,7 +908,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2034441104367131101}
   m_LocalRotation: {x: -4.3297806e-17, y: 0.7071068, z: 4.3578823e-33, w: -0.7071068}
-  m_LocalPosition: {x: 0.0000000032845557, y: 0.008779985, z: 0.06709005}
+  m_LocalPosition: {x: 0.0000000032845557, y: 0.0091, z: 0.06709005}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 6059147028909248694}
@@ -1337,7 +1337,6 @@ GameObject:
   - component: {fileID: -1584741568995318735}
   - component: {fileID: 6721901404974820212}
   - component: {fileID: -955395310011163208}
-  - component: {fileID: 599791460401855631}
   m_Layer: 31
   m_Name: Occluder
   m_TagString: Untagged
@@ -1401,17 +1400,6 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
---- !u!210 &599791460401855631
-SortingGroup:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4557844342347904107}
-  m_Enabled: 1
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
