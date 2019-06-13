@@ -7,6 +7,7 @@ def PackageBuilderExecutesMethod = "CICD.PackageBuilder.CommandLineBuild"
 def BookConfigApiUpdaterExecutesMethod = "CICD.BookConfigApiUpdater.CommandLineBuild"
 
 properties([
+        pipelineTriggers([[$class: "com.cloudbees.jenkins.GitHubPushTrigger", "spec": ""]]),
         parameters([
                 booleanParam(name: 'build_ios', defaultValue: true, description: "Build iOS platform"),
                 booleanParam(name: 'build_android', defaultValue: true, description: "Build Android platform"),
@@ -34,137 +35,122 @@ stage('initialize(master)') {
 }
 
 node(label: 'book') {
+    stage('checkout scm') {
+        def projectCredentialsId = scm.userRemoteConfigs[0].credentialsId
+        checkout([
+                $class                           : 'GitSCM',
+                branches                         : scm.branches,
+                doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
+                extensions                       :
+                        [[
+                                 $class             : 'SubmoduleOption',
+                                 disableSubmodules  : false,
+                                 parentCredentials  : true,
+                                 recursiveSubmodules: true,
+                                 reference          : '',
+                                 trackingSubmodules : false
+                         ]] +
+                                [[$class: 'CloneOption', depth: 1, noTags: false, reference: '', shallow: true]],
+                submoduleCfg                     : [],
+                userRemoteConfigs                : scm.userRemoteConfigs
+        ])
+
+        checkout([$class                           : 'GitSCM',
+                  branches                         : [[name: "refs/${UnityCICDScriptsVersion}"]],
+                  doGenerateSubmoduleConfigurations: false,
+                  extensions                       : [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'Assets/Plugins/Unity-CI-CD-Scripts']],
+                  submoduleCfg                     : [],
+                  userRemoteConfigs                : [[credentialsId: projectCredentialsId, url: 'https://github.com/InceptionXR/Unity-CI-CD-Scripts.git']]
+        ])
+    }
+
+    stage('clean workspace') {
+        dir("Build") {
+            deleteDir()
+        }
+        dir("AssetBundles") {
+            deleteDir()
+        }
+        executeCommand("git clean -df")
+    }
+
+    stage('initialize(node)') {
+        def WinUnityApp = "\"C://Program Files//Unity//Hub//Editor//${UnityAppVersion}//Editor//Unity.exe\""
+        def UnixUnityApp = "/Applications/Unity/Hub/Editor/${UnityAppVersion}/Unity.app/Contents/MacOS/Unity"
+        UnityApp = isUnix() ? UnixUnityApp : WinUnityApp
+
+        def buildOnlyBooks = (params.build_only_books.length() > 0 ? params.build_only_books.split(",") : []) as String[]
+        def bookConfig
+        def bookConfigDescription = "Please check is `book.config` file existing and configured properly " +
+                "(there are one of few rows with book id)." +
+                "\nINFO: actual books configuration - https://admin.bookful.inceptionxr.com/books\n\n"
+        try {
+            bookConfig = readFile "book.config"
+        } catch (Exception e) {
+            error("Issue with reading `book.config`: ${e.getMessage()}\n${bookConfigDescription}")
+        }
+        def bookIds = bookConfig.split("\n")
+        if (bookIds.length == 1) {
+            def bookId = bookIds[0].replace('\r', '')
+            books.push([id: bookId, BSUAssetsRootFolderPath: 'Assets/BSU'])
+        } else {
+            for (int i = 0; i < bookIds.length; i++) {
+                def bookId = bookIds[i].replace('\r', '')
+                if (buildOnlyBooks.length == 0 || buildOnlyBooks.contains(bookId)) {
+                    books.push([id: bookId, BSUAssetsRootFolderPath: "Assets/BSU/Book_${i + 1}"])
+                }
+            }
+        }
+        if (bookIds.any { it.length() == 0 }) {
+            error("Looks `book.config` weren't configured properly.\n${bookConfigDescription}")
+        }
+    }
+
+    def buildId = "${BUILD_NUMBER}_${new Date().getTime()}"
     for (platform in platformsToBuild) {
-        def customWorkspaceName = "${JOB_NAME}-${platform}".replace(" ", "")
-        ws("custom_workspace/${customWorkspaceName}") {
-            stage('checkout scm') {
-                def projectCredentialsId = scm.userRemoteConfigs[0].credentialsId
-                checkout([
-                        $class                           : 'GitSCM',
-                        branches                         : scm.branches,
-                        doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
-                        extensions                       :
-                                [[
-                                         $class             : 'SubmoduleOption',
-                                         disableSubmodules  : false,
-                                         parentCredentials  : true,
-                                         recursiveSubmodules: true,
-                                         reference          : '',
-                                         trackingSubmodules : false,
-                                         timeout            : 20
-                                 ]] +
-                                        [[$class: 'CloneOption', depth: 1, noTags: false, reference: '', shallow: true, timeout: 30]],
-                        submoduleCfg                     : [],
-                        userRemoteConfigs                : scm.userRemoteConfigs
-                ])
+        for (book in books) {
+            def bookId = book.id
+            def BSUAssetsRootFolderPath = book.BSUAssetsRootFolderPath
 
-                checkout([$class                           : 'GitSCM',
-                          branches                         : [[name: "refs/${UnityCICDScriptsVersion}"]],
-                          doGenerateSubmoduleConfigurations: false,
-                          extensions                       : [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'Assets/Plugins/Unity-CI-CD-Scripts']],
-                          submoduleCfg                     : [],
-                          userRemoteConfigs                : [[credentialsId: projectCredentialsId, url: 'https://github.com/InceptionXR/Unity-CI-CD-Scripts.git']]
-                ])
-            }
+            def gsRelativePath = "bookful/book/${bookId}/${buildId}"
+            def httpRelativePath = "https://storage.googleapis.com/${gsRelativePath}/${platform}/"
+            string outputPath = "${WORKSPACE}/AssetBundles/${platform}"
+            string logFileAbsolutePath = "${outputPath}/log"
 
-            stage('clean workspace') {
-                dir("Build") {
-                    deleteDir()
+            try {
+                stage("\"${platform}\":\"${bookId}\" building asset bundles") {
+                    string command = "${UnityApp} -quit -batchmode -logFile ${logFileAbsolutePath} -projectPath ${WORKSPACE} -buildTarget ${platform}"
+                    command += " -executeMethod ${buildAssetBundlesExecutesMethod} -outputPath=${outputPath}"
+                    command += " -httpRelativePath=${httpRelativePath}"
+                    command += " -BSUAssetsRootFolderPath=${BSUAssetsRootFolderPath}"
+                    executeCommand(command)
                 }
-                dir("AssetBundles") {
-                    deleteDir()
+                stage("\"${platform}\":\"${bookId}\" building package") {
+                    string command = "${UnityApp} -quit -batchmode -logFile ${logFileAbsolutePath} -projectPath ${WORKSPACE} -buildTarget ${platform}"
+                    command += " -executeMethod ${PackageBuilderExecutesMethod}"
+                    command += " -httpRelativePath=${httpRelativePath}"
+                    command += " -BSUAssetsRootFolderPath=${BSUAssetsRootFolderPath}"
+                    executeCommand(command)
                 }
-                executeCommand("git clean -df")
-            }
-
-            stage('initialize(node)') {
-                def WinUnityApp = "\"C://Program Files//Unity//Hub//Editor//${UnityAppVersion}//Editor//Unity.exe\""
-                def UnixUnityApp = "/Applications/Unity/Hub/Editor/${UnityAppVersion}/Unity.app/Contents/MacOS/Unity"
-                UnityApp = isUnix() ? UnixUnityApp : WinUnityApp
-
-                def buildOnlyBooks = (params.build_only_books.length() > 0 ? params.build_only_books.split(",") : []) as String[]
-                def bookConfig
-                def bookConfigDescription = "Please check is `book.config` file existing and configured properly " +
-                        "(there are one of few rows with book id)." +
-                        "\nINFO: actual books configuration - https://admin.bookful.inceptionxr.com/books\n\n"
-                try {
-                    bookConfig = readFile "book.config"
-                } catch (Exception e) {
-                    error("Issue with reading `book.config`: ${e.getMessage()}\n${bookConfigDescription}")
+                stage("\"${platform}\":\"${bookId}\" uploading package") {
+                    def pathPrefix = isUnix() ? "Build" : "${WORKSPACE}/Build/".substring(1)
+                    googleStorageUpload bucket: "gs://${gsRelativePath}", credentialsId: 'bookful', pattern: "Build/${platform}/**/*", pathPrefix: "${pathPrefix}"
                 }
-                def bookIds = bookConfig.split("\n")
-                if (bookIds.length == 1) {
-                    def bookId = bookIds[0].replace('\r', '')
-                    books.push([id: bookId, BSUAssetsRootFolderPath: 'Assets/BSU', GamesAssetsRootFolderPath: 'Assets/Games'])
-                } else {
-                    for (int i = 0; i < bookIds.length; i++) {
-                        def bookId = bookIds[i].replace('\r', '')
-                        if (buildOnlyBooks.length == 0 || buildOnlyBooks.contains(bookId)) {
-                            books.push([id: bookId, BSUAssetsRootFolderPath: "Assets/BSU/Book_${i + 1}", GamesAssetsRootFolderPath: "Assets/Games/Book_${i + 1}"])
-                        }
-                    }
-                }
-                if (bookIds.any { it.length() == 0 }) {
-                    error("Looks `book.config` weren't configured properly.\n${bookConfigDescription}")
-                }
-            }
-
-            def buildId = "${BUILD_NUMBER}_${new Date().getTime()}"
-            for (book in books) {
-                def bookId = book.id
-                def BSUAssetsRootFolderPath = book.BSUAssetsRootFolderPath
-                def GamesAssetsRootFolderPath = book.GamesAssetsRootFolderPath
-
-                def gsRelativePath = "bookful/book/${bookId}/${buildId}"
-                def httpRelativePath = "https://storage.googleapis.com/${gsRelativePath}/${platform}/"
-                string outputPath = "${WORKSPACE}/AssetBundles/${platform}"
-                dir("${WORKSPACE}/Logs/") {
-                    writeFile file: 'dummy', text: ''
-                }
-                string logFileAbsolutePath = "\"${WORKSPACE}/Logs/${platform}.log\""
-
-                try {
-                    stage("\"${platform}\":\"${bookId}\" building asset bundles") {
-                        //TODO: remove it after fix `bookplayer`
-                        dir("Assets/Plugins/bookplayer") {
-                            deleteDir()
-                        }
+                stage("\"${platform}\":\"${bookId}\" updating Book API service") {
+                    withCredentials([string(credentialsId: 'BookfulApiServiceAccessToken', variable: 'BookfulApiServiceAccessToken')]) {
                         string command = "${UnityApp} -quit -batchmode -logFile ${logFileAbsolutePath} -projectPath ${WORKSPACE} -buildTarget ${platform}"
-                        command += " -executeMethod ${buildAssetBundlesExecutesMethod} -outputPath=${outputPath}"
+                        command += " -executeMethod ${BookConfigApiUpdaterExecutesMethod}"
+                        command += " -bookId=${bookId}"
                         command += " -httpRelativePath=${httpRelativePath}"
+                        command += " -BookfulApiServiceAccessToken=${BookfulApiServiceAccessToken}"
                         command += " -BSUAssetsRootFolderPath=${BSUAssetsRootFolderPath}"
-                        command += " -GamesAssetsRootFolderPath=${GamesAssetsRootFolderPath}"
                         executeCommand(command)
                     }
-                    stage("\"${platform}\":\"${bookId}\" building package") {
-                        string command = "${UnityApp} -quit -batchmode -logFile ${logFileAbsolutePath} -projectPath ${WORKSPACE} -buildTarget ${platform}"
-                        command += " -executeMethod ${PackageBuilderExecutesMethod}"
-                        command += " -httpRelativePath=${httpRelativePath}"
-                        command += " -BSUAssetsRootFolderPath=${BSUAssetsRootFolderPath}"
-                        command += " -GamesAssetsRootFolderPath=${GamesAssetsRootFolderPath}"
-                        executeCommand(command)
-                    }
-                    stage("\"${platform}\":\"${bookId}\" uploading package") {
-                        def pathPrefix = isUnix() ? "Build" : "${WORKSPACE}/Build/".substring(1)
-                        googleStorageUpload bucket: "gs://${gsRelativePath}", credentialsId: 'bookful', pattern: "Build/${platform}/**/*", pathPrefix: "${pathPrefix}"
-                    }
-                    stage("\"${platform}\":\"${bookId}\" updating Book API service") {
-                        withCredentials([string(credentialsId: 'BookfulApiServiceAccessToken', variable: 'BookfulApiServiceAccessToken')]) {
-                            string command = "${UnityApp} -quit -batchmode -logFile ${logFileAbsolutePath} -projectPath ${WORKSPACE} -buildTarget ${platform}"
-                            command += " -executeMethod ${BookConfigApiUpdaterExecutesMethod}"
-                            command += " -bookId=${bookId}"
-                            command += " -httpRelativePath=${httpRelativePath}"
-                            command += " -BookfulApiServiceAccessToken=${BookfulApiServiceAccessToken}"
-                            command += " -BSUAssetsRootFolderPath=${BSUAssetsRootFolderPath}"
-                            command += " -GamesAssetsRootFolderPath=${GamesAssetsRootFolderPath}"
-                            executeCommand(command)
-                        }
-                    }
-                } catch (Exception e) {
-                    info("Exception: ${e.getMessage()}" + "\n${e.getStackTrace().join("\n")}")
-                    catFile(logFileAbsolutePath)
-                    throw e
                 }
+            } catch (Exception e) {
+                info("Exception: ${e.getMessage()}" + "\n${e.getStackTrace().join("\n")}")
+                catFile(logFileAbsolutePath)
+                throw e
             }
         }
     }
