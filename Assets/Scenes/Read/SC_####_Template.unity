@@ -426,41 +426,39 @@ GameObject:
 --- !u!114 &1943737861
 MonoBehaviour:
   m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 114841170159572732, guid: 42b6d61e0a6594489b144f7c67add56c,
-    type: 2}
+  m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1943737860}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1ea3be6455d3e204caa6dffcfa543b3b, type: 3}
+  m_Script: {fileID: 11500000, guid: 5b6b053d53563fc4984beb111b840130, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   _enableScale: 1
-  _scaleInitSize: 0
-  _scaleAnimTime: 0.1
-  _scaleDownAnimTime: 0.1
+  _scaleAnimTime: 0.2
+  _scaleDownAnimTime: 0.001
   _scaleOverTime:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
       time: 0
       value: 0
-      inSlope: 2
-      outSlope: 2
+      inSlope: 4.245283
+      outSlope: 4.245283
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
-      outWeight: 0
+      outWeight: 0.11135072
     - serializedVersion: 3
-      time: 0.3601234
-      value: 0.94990003
-      inSlope: 0.910236
-      outSlope: 0.910236
+      time: 0.22451584
+      value: 0.9047042
+      inSlope: 1.117635
+      outSlope: 1.117635
       tangentMode: 0
       weightedMode: 0
-      inWeight: 0.36167645
-      outWeight: 0.19360511
+      inWeight: 0.33333334
+      outWeight: 0.33333334
     - serializedVersion: 3
       time: 1
       value: 1
@@ -473,14 +471,14 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  _appearOnEnable: 0
+  _appearOnEnable: 1
   _groups:
-  - _groupName: 
-    _transforms: []
-    _timeBetweenTransforms: 0.01
-    _timeToNextGroup: 0.001
-    _timeBetweenTransformOnScaleDown: 0.001
-    _timeToNextGroupOnScaleDown: 0.001
+  - _transforms: []
+    _timeToScaleUpStart: 0
+    _scaleDownOnTimer: 0
+    _timeToScaleDownStart: 0
+  _timeBetweenTransformsOnScaleUp: 0.1
+  _timeBetweenTransformsOnScaleDown: 0
 --- !u!4 &1943737862
 Transform:
   m_ObjectHideFlags: 0
