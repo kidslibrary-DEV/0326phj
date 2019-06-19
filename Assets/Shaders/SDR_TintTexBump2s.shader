@@ -21,9 +21,8 @@ Shader "Custom/TintTexBump2s"
 		CGPROGRAM
 		#include "UnityStandardUtils.cginc"
 		#pragma target 3.0
-		#pragma multi_compile_instancing
 		#pragma exclude_renderers xbox360 xboxone ps4 psp2 n3ds wiiu 
-		#pragma surface surf Lambert keepalpha addshadow fullforwardshadows nolightmap  nodynlightmap nodirlightmap nofog nometa noforwardadd 
+		#pragma surface surf Lambert keepalpha addshadow fullforwardshadows 
 		struct Input
 		{
 			float2 uv_texcoord;
@@ -56,7 +55,7 @@ Shader "Custom/TintTexBump2s"
 }
 /*ASEBEGIN
 Version=16300
-2196;103;2034;1249;-1212.813;596.9338;1.362639;True;True
+2196;91;2034;1261;-1212.813;605.1096;1.362639;True;True
 Node;AmplifyShaderEditor.RangedFloatNode;64;2365.752,-69.00682;Half;False;Property;_Diffuse;Diffuse;1;0;Create;True;0;0;False;0;1;1;0;1;0;1;FLOAT;0
 Node;AmplifyShaderEditor.RangedFloatNode;123;2464.34,458.8391;Half;False;Property;_2DSwitch;2D Switch;2;0;Create;True;0;0;False;0;0;1;0;1;0;1;FLOAT;0
 Node;AmplifyShaderEditor.RangedFloatNode;126;1893.905,233.9983;Half;False;Property;_BumpScale;Bump Scale;5;0;Create;True;0;0;False;0;1;1;0;2;0;1;FLOAT;0
@@ -65,7 +64,7 @@ Node;AmplifyShaderEditor.SamplerNode;121;2077.878,-394.7025;Float;True;Property;
 Node;AmplifyShaderEditor.SimpleMultiplyOpNode;48;3047.392,205.5391;Float;False;3;3;0;COLOR;0,0,0,0;False;1;COLOR;0,0,0,0;False;2;FLOAT;0;False;1;COLOR;0
 Node;AmplifyShaderEditor.SimpleMultiplyOpNode;66;2931.82,-185.6952;Float;False;3;3;0;COLOR;0,0,0,0;False;1;COLOR;1,0,0,0;False;2;FLOAT;0;False;1;COLOR;0
 Node;AmplifyShaderEditor.SamplerNode;125;2341.769,148.9725;Float;True;Property;_BumpMap;BumpMap;4;0;Create;True;0;0;False;0;None;None;True;0;False;bump;Auto;True;Object;-1;Auto;Texture2D;6;0;SAMPLER2D;;False;1;FLOAT2;0,0;False;2;FLOAT;0;False;3;FLOAT2;0,0;False;4;FLOAT2;0,0;False;5;FLOAT;1;False;5;FLOAT3;0;FLOAT;1;FLOAT;2;FLOAT;3;FLOAT;4
-Node;AmplifyShaderEditor.StandardSurfaceOutputNode;0;3322.469,54.60084;Float;False;True;2;Float;ASEMaterialInspector;0;0;Lambert;Custom/TintTexBump2s;False;False;False;False;False;False;True;True;True;True;True;True;False;False;False;False;True;False;False;False;Off;0;False;-1;0;False;-1;False;0;False;-1;0;False;-1;False;0;Opaque;0.5;True;True;0;False;Opaque;;Geometry;All;True;True;True;True;True;True;True;False;False;False;False;False;False;True;True;True;True;0;False;-1;False;0;False;-1;255;False;-1;255;False;-1;0;False;-1;0;False;-1;0;False;-1;0;False;-1;0;False;-1;0;False;-1;0;False;-1;0;False;-1;False;2;15;10;25;False;0.5;True;0;5;False;-1;10;False;-1;0;0;False;-1;0;False;-1;0;False;-1;0;False;-1;0;False;0;0,0,0,0;VertexOffset;True;False;Cylindrical;False;Relative;0;Mobile/Diffuse;-1;-1;-1;-1;0;False;0;0;False;-1;-1;0;False;-1;0;0;0;False;0.1;False;-1;0;False;-1;15;0;FLOAT3;0,0,0;False;1;FLOAT3;0,0,0;False;2;FLOAT3;0,0,0;False;3;FLOAT;0;False;4;FLOAT;0;False;6;FLOAT3;0,0,0;False;7;FLOAT3;0,0,0;False;8;FLOAT;0;False;9;FLOAT;0;False;10;FLOAT;0;False;13;FLOAT3;0,0,0;False;11;FLOAT3;0,0,0;False;12;FLOAT3;0,0,0;False;14;FLOAT4;0,0,0,0;False;15;FLOAT3;0,0,0;False;0
+Node;AmplifyShaderEditor.StandardSurfaceOutputNode;0;3322.469,54.60084;Float;False;True;2;Float;ASEMaterialInspector;0;0;Lambert;Custom/TintTexBump2s;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;False;Off;0;False;-1;0;False;-1;False;0;False;-1;0;False;-1;False;0;Opaque;0.5;True;True;0;False;Opaque;;Geometry;All;True;True;True;True;True;True;True;False;False;False;False;False;False;True;True;True;True;0;False;-1;False;0;False;-1;255;False;-1;255;False;-1;0;False;-1;0;False;-1;0;False;-1;0;False;-1;0;False;-1;0;False;-1;0;False;-1;0;False;-1;False;2;15;10;25;False;0.5;True;0;5;False;-1;10;False;-1;0;0;False;-1;0;False;-1;0;False;-1;0;False;-1;0;False;0;0,0,0,0;VertexOffset;True;False;Cylindrical;False;Relative;0;Mobile/Diffuse;-1;-1;-1;-1;0;False;0;0;False;-1;-1;0;False;-1;0;0;0;False;0.1;False;-1;0;False;-1;15;0;FLOAT3;0,0,0;False;1;FLOAT3;0,0,0;False;2;FLOAT3;0,0,0;False;3;FLOAT;0;False;4;FLOAT;0;False;6;FLOAT3;0,0,0;False;7;FLOAT3;0,0,0;False;8;FLOAT;0;False;9;FLOAT;0;False;10;FLOAT;0;False;13;FLOAT3;0,0,0;False;11;FLOAT3;0,0,0;False;12;FLOAT3;0,0,0;False;14;FLOAT4;0,0,0,0;False;15;FLOAT3;0,0,0;False;0
 WireConnection;48;0;82;0
 WireConnection;48;1;121;0
 WireConnection;48;2;123;0
@@ -77,4 +76,4 @@ WireConnection;0;0;66;0
 WireConnection;0;1;125;0
 WireConnection;0;2;48;0
 ASEEND*/
-//CHKSM=CD27F185CD6778F43C1C5B0FD873C412201382DE
+//CHKSM=9E2F7058A7E19A16429B4A9EC9CFE0599C22B332
