@@ -18,25 +18,6 @@ git init
 git remote add origin {repo link}
 ```
 
-#### Add submodules
-
-* Enter Assets/Plugins folder by running the script or using the exploper/finder
-```bash
-cd Assets/Plugins
-```
-* Add submodules by running the following scripts
-```bash
-git submodule add https://github.com/InceptionXR/UITools.git
-git submodule add https://github.com/InceptionXR/GameKit.git
-git submodule add https://github.com/InceptionXR/BookPlayer.git
-git submodule add https://github.com/InceptionXR/IARCore.git
-```
-### Get back to root folder
-Run the following scripts:
-```bash
-cd ...
-```
-
 ### Delete template files
 Run the following scripts:
 ```bash
