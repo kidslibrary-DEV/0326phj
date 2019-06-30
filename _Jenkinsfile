@@ -1,181 +1,127 @@
 #!groovy
-def defaultUnityAppVersion = "2018.3.6f1"
+def defaultUnityAppVersion = "2019.1.4f1"
 def defaultUnityCICDScriptsVersion = "heads/master"
-
 def buildAssetBundlesExecutesMethod = "CICD.AssetBundlesBuilder.CommandLineBuild"
 def PackageBuilderExecutesMethod = "CICD.PackageBuilder.CommandLineBuild"
 def BookConfigApiUpdaterExecutesMethod = "CICD.BookConfigApiUpdater.CommandLineBuild"
-
-properties([
-        pipelineTriggers([[$class: "com.cloudbees.jenkins.GitHubPushTrigger", "spec": ""]]),
-        parameters([
-                booleanParam(name: 'build_ios', defaultValue: true, description: "Build iOS platform"),
-                booleanParam(name: 'build_android', defaultValue: true, description: "Build Android platform"),
-                string(name: 'build_only_books', defaultValue: '', description: "List of book id ',' separated to build. Empty value build all books"),
-                string(name: 'unity_app_version', defaultValue: defaultUnityAppVersion, description: "Unity App Version"),
-                string(name: 'unity_ci_and_cd_scripts_version', defaultValue: defaultUnityCICDScriptsVersion, description: "Unity CI&CD Scripts version, tag from \"https://github.com/InceptionXR/Unity-CI-CD-Scripts\" repository"),
-        ])
-])
-
-def UnityAppVersion
-def UnityApp
-def platformsToBuild = []
-def UnityCICDScriptsVersion
+def RefreshAssetsExecutesMethod = "CICD.AssetReimporter.CommandLineBuild"
+properties([parameters([
+        string(name: 'build_only_books', defaultValue: '', description: "List of book id ',' separated to build. Empty value build all books"),
+        string(name: 'unity_ci_and_cd_scripts_version', defaultValue: defaultUnityCICDScriptsVersion, description: "Unity CI&CD Scripts version, tag from \"https://github.com/InceptionXR/Unity-CI-CD-Scripts\" repository"),
+        booleanParam(name: 'build_ios', defaultValue: true, description: "Build iOS platform"),
+        booleanParam(name: 'build_android', defaultValue: true, description: "Build Android platform"),
+        booleanParam(name: 'run_tests', defaultValue: false, description: "Run tests"),
+		booleanParam(name: 'reimport', defaultValue: false, description: "Reimport Unity Assets"),
+        booleanParam(name: 'use_pv', defaultValue: false, description: "Use persistence volume caching"),
+        string(name: 'unity_app_version', defaultValue: defaultUnityAppVersion, description: "Unity App Version"),
+        string(name: 'logLevel', defaultValue: "info", description: "Logs level"),
+])])
+def UnityAppVersion = params.unity_app_version
+def UnityCICDScriptsVersion = params.unity_ci_and_cd_scripts_version
+def platformsToBuild = unityUtil.getPlatformsToBuild();
 def books = []
-
-stage('initialize(master)') {
-    if (params.build_ios) {
-        platformsToBuild.push("iOS")
-    }
-    if (params.build_android) {
-        platformsToBuild.push("Android")
-    }
-    UnityCICDScriptsVersion = params.unity_ci_and_cd_scripts_version
-    UnityAppVersion = params.unity_app_version
-}
-
-node(label: 'book') {
-    stage('checkout scm') {
-        def projectCredentialsId = scm.userRemoteConfigs[0].credentialsId
-        checkout([
-                $class                           : 'GitSCM',
-                branches                         : scm.branches,
-                doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
-                extensions                       :
-                        [[
-                                 $class             : 'SubmoduleOption',
-                                 disableSubmodules  : false,
-                                 parentCredentials  : true,
-                                 recursiveSubmodules: true,
-                                 reference          : '',
-                                 trackingSubmodules : false
-                         ]] +
-                                [[$class: 'CloneOption', depth: 1, noTags: false, reference: '', shallow: true]],
-                submoduleCfg                     : [],
-                userRemoteConfigs                : scm.userRemoteConfigs
-        ])
-
-        checkout([$class                           : 'GitSCM',
-                  branches                         : [[name: "refs/${UnityCICDScriptsVersion}"]],
-                  doGenerateSubmoduleConfigurations: false,
-                  extensions                       : [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'Assets/Plugins/Unity-CI-CD-Scripts']],
-                  submoduleCfg                     : [],
-                  userRemoteConfigs                : [[credentialsId: projectCredentialsId, url: 'https://github.com/InceptionXR/Unity-CI-CD-Scripts.git']]
-        ])
-    }
-
-    stage('clean workspace') {
-        dir("Build") {
-            deleteDir()
-        }
-        dir("AssetBundles") {
-            deleteDir()
-        }
-        executeCommand("git clean -df")
-    }
-
-    stage('initialize(node)') {
-        def WinUnityApp = "\"C://Program Files//Unity//Hub//Editor//${UnityAppVersion}//Editor//Unity.exe\""
-        def UnixUnityApp = "/Applications/Unity/Hub/Editor/${UnityAppVersion}/Unity.app/Contents/MacOS/Unity"
-        UnityApp = isUnix() ? UnixUnityApp : WinUnityApp
-
-        def buildOnlyBooks = (params.build_only_books.length() > 0 ? params.build_only_books.split(",") : []) as String[]
-        def bookConfig
-        def bookConfigDescription = "Please check is `book.config` file existing and configured properly " +
-                "(there are one of few rows with book id)." +
-                "\nINFO: actual books configuration - https://admin.bookful.inceptionxr.com/books\n\n"
-        try {
-            bookConfig = readFile "book.config"
-        } catch (Exception e) {
-            error("Issue with reading `book.config`: ${e.getMessage()}\n${bookConfigDescription}")
-        }
-        def bookIds = bookConfig.split("\n")
-        if (bookIds.length == 1) {
-            def bookId = bookIds[0].replace('\r', '')
-            books.push([id: bookId, BSUAssetsRootFolderPath: 'Assets/BSU'])
-        } else {
-            for (int i = 0; i < bookIds.length; i++) {
-                def bookId = bookIds[i].replace('\r', '')
-                if (buildOnlyBooks.length == 0 || buildOnlyBooks.contains(bookId)) {
-                    books.push([id: bookId, BSUAssetsRootFolderPath: "Assets/BSU/Book_${i + 1}"])
+def bookApiVersion
+for (platform in platformsToBuild) {
+    def label = bookK8sTemplates.id(platform)
+    bookK8sTemplates.createPersistentVolumeClaim(label)
+    def yaml = bookK8sTemplates.unityPodTemplate(UnityAppVersion, label)
+    podTemplate(cloud: 'Bookful Stage', label: label, showRawYaml: log.isDebug(), yaml: yaml) {
+        node(label) {
+            ws("ws") {
+                stage('checkout scm') {
+                    vcs.checkoutRepo(20)
+                    vcs.checkoutUnityCICDScriptsRepo(UnityCICDScriptsVersion)
                 }
-            }
-        }
-        if (bookIds.any { it.length() == 0 }) {
-            error("Looks `book.config` weren't configured properly.\n${bookConfigDescription}")
-        }
-    }
-
-    def buildId = "${BUILD_NUMBER}_${new Date().getTime()}"
-    for (platform in platformsToBuild) {
-        for (book in books) {
-            def bookId = book.id
-            def BSUAssetsRootFolderPath = book.BSUAssetsRootFolderPath
-
-            def gsRelativePath = "bookful/book/${bookId}/${buildId}"
-            def httpRelativePath = "https://storage.googleapis.com/${gsRelativePath}/${platform}/"
-            string outputPath = "${WORKSPACE}/AssetBundles/${platform}"
-            string logFileAbsolutePath = "${outputPath}/log"
-
-            try {
-                stage("\"${platform}\":\"${bookId}\" building asset bundles") {
-                    string command = "${UnityApp} -quit -batchmode -logFile ${logFileAbsolutePath} -projectPath ${WORKSPACE} -buildTarget ${platform}"
-                    command += " -executeMethod ${buildAssetBundlesExecutesMethod} -outputPath=${outputPath}"
-                    command += " -httpRelativePath=${httpRelativePath}"
-                    command += " -BSUAssetsRootFolderPath=${BSUAssetsRootFolderPath}"
-                    executeCommand(command)
+                stage('initialize(node)') {
+                    def buildOnlyBooks = (params.build_only_books.length() > 0 ? params.build_only_books.split(",") : []) as String[]
+                    books = bookUtil.booksToBuild(buildOnlyBooks)
+                    bookApiVersion = bookUtil.getBookApiVersion()
+                    cmd.exe("git clean -df")
+                    dir("Build") {
+                        deleteDir()
+                    }
+                    dir("AssetBundles") {
+                        deleteDir()
+                    }
+                    if (params.use_pv) {
+                        container('unity') {
+                            cmd.exe("ln -s /pv_cache Library")
+                        }
+                    }
+                    unityUtil.activateLicence(UnityAppVersion)
                 }
-                stage("\"${platform}\":\"${bookId}\" building package") {
-                    string command = "${UnityApp} -quit -batchmode -logFile ${logFileAbsolutePath} -projectPath ${WORKSPACE} -buildTarget ${platform}"
-                    command += " -executeMethod ${PackageBuilderExecutesMethod}"
-                    command += " -httpRelativePath=${httpRelativePath}"
-                    command += " -BSUAssetsRootFolderPath=${BSUAssetsRootFolderPath}"
-                    executeCommand(command)
+                def buildId = "${BUILD_NUMBER}_${new Date().getTime()}"
+                def unityArgs = ""
+                unityArgs += " -projectPath ${WORKSPACE}"
+                unityArgs += " -buildTarget ${platform}"
+                unityArgs += " -buildId=${buildId}"
+				if (params.reimport) {
+					stage("reimporting assets \"${platform}\"") {
+						string command = "-quit -batchmode"
+						command += " -executeMethod ${RefreshAssetsExecutesMethod}"
+						command += unityArgs
+						unityUtil.exe(command, "Reimporting assets")
+					}
+				}
+                stage("init \"${platform}\"") {
+                    string command = "-quit -batchmode"
+                    command += unityArgs
+                    unityUtil.exe(command, "Init")
                 }
-                stage("\"${platform}\":\"${bookId}\" uploading package") {
-                    def pathPrefix = isUnix() ? "Build" : "${WORKSPACE}/Build/".substring(1)
-                    googleStorageUpload bucket: "gs://${gsRelativePath}", credentialsId: 'bookful', pattern: "Build/${platform}/**/*", pathPrefix: "${pathPrefix}"
-                }
-                stage("\"${platform}\":\"${bookId}\" updating Book API service") {
-                    withCredentials([string(credentialsId: 'BookfulApiServiceAccessToken', variable: 'BookfulApiServiceAccessToken')]) {
-                        string command = "${UnityApp} -quit -batchmode -logFile ${logFileAbsolutePath} -projectPath ${WORKSPACE} -buildTarget ${platform}"
-                        command += " -executeMethod ${BookConfigApiUpdaterExecutesMethod}"
-                        command += " -bookId=${bookId}"
-                        command += " -httpRelativePath=${httpRelativePath}"
-                        command += " -BookfulApiServiceAccessToken=${BookfulApiServiceAccessToken}"
-                        command += " -BSUAssetsRootFolderPath=${BSUAssetsRootFolderPath}"
-                        executeCommand(command)
+                if (params.run_tests) {
+                    stage("\"${platform}\" tests") {
+                        try {
+                            string command = "-batchmode"
+                            command += " -runEditorTests"
+                            command += " -testResults ${WORKSPACE}/Logs/test_report.xml"
+                            command += unityArgs
+                            unityUtil.exe(command, "Tests")
+                            nunit testResultsPattern: 'Logs/test_report.xml'
+                        } catch (Exception e) {
+                            if (e.getMessage() == "script returned exit code 2") {
+                                nunit testResultsPattern: 'Logs/test_report.xml'
+                                error("Tests failed!")
+                            } else {
+                                throw e
+                            }
+                        }
                     }
                 }
-            } catch (Exception e) {
-                info("Exception: ${e.getMessage()}" + "\n${e.getStackTrace().join("\n")}")
-                catFile(logFileAbsolutePath)
-                throw e
+                for (book in books) {
+                    def gsRelativePath = "bookful/book/${book.id}/${buildId}"
+                    def unityBookArgs = unityArgs
+                    unityBookArgs += " -bookId=${book.id}"
+                    unityBookArgs += " -httpRelativePath=https://storage.googleapis.com/${gsRelativePath}/${platform}/"
+                    unityBookArgs += " -BSUAssetsRootFolderPath=${book.BSUAssetsRootFolderPath}"
+                    unityBookArgs += " -bookApiVersion=${bookApiVersion}"
+                    unityBookArgs += " -GamesAssetsRootFolderPath=${book.GamesAssetsRootFolderPath}"
+                    stage("\"${platform}\":\"${book.id}\" building asset bundles") {
+                        string command = "-quit -batchmode"
+                        command += " -executeMethod ${buildAssetBundlesExecutesMethod} -outputPath=${WORKSPACE}/AssetBundles/${platform}"
+                        command += unityBookArgs
+                        unityUtil.exe(command, "AssetBundles")
+                    }
+                    stage("\"${platform}\":\"${book.id}\" building package") {
+                        string command = "-quit -batchmode"
+                        command += " -executeMethod ${PackageBuilderExecutesMethod}"
+                        command += unityBookArgs
+                        unityUtil.exe(command, "BuildingPackage")
+                    }
+                    stage("\"${platform}\":\"${book.id}\" uploading package") {
+                        def pathPrefix = isUnix() ? "Build" : "${WORKSPACE}/Build/".substring(1)
+                        googleStorageUpload bucket: "gs://${gsRelativePath}", credentialsId: 'bookful', pattern: "Build/${platform}/**/*", pathPrefix: "${pathPrefix}"
+                    }
+                    stage("\"${platform}\":\"${book.id}\" updating Book API service") {
+                        withCredentials([string(credentialsId: 'BookfulApiServiceAccessToken', variable: 'BookfulApiServiceAccessToken')]) {
+                            string command = "-quit -batchmode"
+                            command += " -executeMethod ${BookConfigApiUpdaterExecutesMethod}"
+                            command += " -BookfulApiServiceAccessToken=${BookfulApiServiceAccessToken}"
+                            command += unityBookArgs
+                            unityUtil.exe(command, "UpdatingBookAPIService")
+                        }
+                    }
+                }
             }
         }
     }
-}
-
-def catFile(def path) {
-    if (isUnix()) {
-        executeCommand("cat ${path}")
-    } else {
-        def winPath = path.replace("/", "\\")
-        executeCommand("type \"${winPath}\" 2>nul")
-    }
-}
-
-@NonCPS
-def executeCommand(String command) {
-    info("command: ${command}")
-    if (isUnix()) {
-        sh command
-    } else {
-        bat command
-    }
-}
-
-@NonCPS
-def info(String message) {
-    echo message
 }
