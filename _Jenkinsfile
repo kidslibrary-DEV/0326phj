@@ -11,7 +11,7 @@ properties([parameters([
         booleanParam(name: 'build_ios', defaultValue: true, description: "Build iOS platform"),
         booleanParam(name: 'build_android', defaultValue: true, description: "Build Android platform"),
         booleanParam(name: 'run_tests', defaultValue: false, description: "Run tests"),
-		booleanParam(name: 'reimport', defaultValue: false, description: "Reimport Unity Assets"),
+        booleanParam(name: 'reimport', defaultValue: false, description: "Reimport Unity Assets"),
         booleanParam(name: 'use_pv', defaultValue: false, description: "Use persistence volume caching"),
         string(name: 'unity_app_version', defaultValue: defaultUnityAppVersion, description: "Unity App Version"),
         string(name: 'logLevel', defaultValue: "info", description: "Logs level"),
@@ -55,14 +55,14 @@ for (platform in platformsToBuild) {
                 unityArgs += " -projectPath ${WORKSPACE}"
                 unityArgs += " -buildTarget ${platform}"
                 unityArgs += " -buildId=${buildId}"
-				if (params.reimport) {
-					stage("reimporting assets \"${platform}\"") {
-						string command = "-quit -batchmode"
-						command += " -executeMethod ${RefreshAssetsExecutesMethod}"
-						command += unityArgs
-						unityUtil.exe(command, "Reimporting assets")
-					}
-				}
+                if (params.reimport) {
+                    stage("reimporting assets \"${platform}\"") {
+                        string command = "-quit -batchmode"
+                        command += " -executeMethod ${RefreshAssetsExecutesMethod}"
+                        command += unityArgs
+                        unityUtil.exe(command, "Reimporting assets")
+                    }
+                }
                 stage("init \"${platform}\"") {
                     string command = "-quit -batchmode"
                     command += unityArgs
