@@ -1368,6 +1368,7 @@ GameObject:
   - component: {fileID: -1584741568995318735}
   - component: {fileID: 6721901404974820212}
   - component: {fileID: -955395310011163208}
+  - component: {fileID: 1450246617244632860}
   m_Layer: 31
   m_Name: Occluder
   m_TagString: Untagged
@@ -1383,7 +1384,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4557844342347904107}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.6, y: -4.89, z: -2.851}
+  m_LocalPosition: {x: 0, y: -4.89, z: 0}
   m_LocalScale: {x: 24.459774, y: 9.712203, z: 16.348381}
   m_Children: []
   m_Father: {fileID: -9169925530224100486}
@@ -1434,6 +1435,25 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+--- !u!1818360608 &1450246617244632860
+PositionConstraint:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4557844342347904107}
+  m_Enabled: 1
+  m_Weight: 1
+  m_TranslationAtRest: {x: 0, y: -4.89, z: 0}
+  m_TranslationOffset: {x: -1.1526216, y: -4.9508257, z: 0}
+  m_AffectTranslationX: 0
+  m_AffectTranslationY: 1
+  m_AffectTranslationZ: 0
+  m_IsContraintActive: 1
+  m_IsLocked: 1
+  m_Sources:
+  - sourceTransform: {fileID: -7896497027372145439}
+    weight: 1
 --- !u!1 &5161478733356679485
 GameObject:
   m_ObjectHideFlags: 0
