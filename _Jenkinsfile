@@ -12,7 +12,7 @@ properties([parameters([
         booleanParam(name: 'build_android', defaultValue: true, description: "Build Android platform"),
         booleanParam(name: 'run_tests', defaultValue: false, description: "Run tests"),
         booleanParam(name: 'reimport', defaultValue: false, description: "Reimport Unity Assets"),
-        booleanParam(name: 'use_pv', defaultValue: false, description: "Use persistence volume caching"),
+        booleanParam(name: 'use_pv', defaultValue: true, description: "Use persistence volume caching"),
         string(name: 'unity_app_version', defaultValue: defaultUnityAppVersion, description: "Unity App Version"),
         string(name: 'logLevel', defaultValue: "info", description: "Logs level"),
 ])])
@@ -45,7 +45,7 @@ for (platform in platformsToBuild) {
                     }
                     if (params.use_pv) {
                         container('unity') {
-                            cmd.exe("ln -s /pv_cache Library")
+                            cmd.exe("cp -rp /pv_cache/* .")
                         }
                     }
                     unityUtil.activateLicence(UnityAppVersion)
@@ -67,6 +67,12 @@ for (platform in platformsToBuild) {
                     string command = "-quit -batchmode"
                     command += unityArgs
                     unityUtil.exe(command, "Init")
+                    if (params.use_pv) {
+                        container('unity') {
+                            cmd.exe("rm -rf /pv_cache/*")
+                            cmd.exe("cp -rp Library /pv_cache")
+                        }
+                    }
                 }
                 if (params.run_tests) {
                     stage("\"${platform}\" tests") {
