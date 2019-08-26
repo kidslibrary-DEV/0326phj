@@ -1,5 +1,5 @@
 #!groovy
-def defaultUnityAppVersion = "2019.1.4f1"
+def defaultUnityAppVersion = "2019.2.1f1"
 def defaultUnityCICDScriptsVersion = "heads/master"
 def buildAssetBundlesExecutesMethod = "CICD.AssetBundlesBuilder.CommandLineBuild"
 def PackageBuilderExecutesMethod = "CICD.PackageBuilder.CommandLineBuild"
@@ -24,7 +24,7 @@ def bookApiVersion
 for (platform in platformsToBuild) {
     def label = bookK8sTemplates.id(platform)
     bookK8sTemplates.createPersistentVolumeClaim(label)
-    def yaml = bookK8sTemplates.unityPodTemplate(UnityAppVersion, label)
+    def yaml = bookK8sTemplates.unityPodTemplate_v2("gcr.io/bookful-220910/unity3d:${UnityAppVersion}-${platform.toLowerCase()}", label)
     podTemplate(cloud: 'Bookful Stage', label: label, showRawYaml: log.isDebug(), yaml: yaml) {
         node(label) {
             ws("ws") {
@@ -48,7 +48,7 @@ for (platform in platformsToBuild) {
                             cmd.exe("cp -rp /pv_cache/* .")
                         }
                     }
-                    unityUtil.activateLicence(UnityAppVersion)
+                    unityUtil.activateLicence_v2("${UnityAppVersion}_${platform.toLowerCase()}")
                 }
                 def buildId = "${BUILD_NUMBER}_${new Date().getTime()}"
                 def unityArgs = ""
