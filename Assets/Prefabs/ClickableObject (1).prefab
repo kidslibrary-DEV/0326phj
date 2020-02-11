@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 4693065834718696833}
   - component: {fileID: 8888221306324244124}
   - component: {fileID: 5893397969662467174}
+  - component: {fileID: 8649827228240358538}
   m_Layer: 0
   m_Name: LocalPositiveFeedbacks
   m_TagString: Untagged
@@ -47,6 +48,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 628fa7674164a09498bdade7e8563b7c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _includeChildren: 0
 --- !u!114 &4693065834718696833
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -104,6 +106,48 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 4297581920086142176}
+        m_MethodName: SetActive
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 6984934165770708770}
+        m_MethodName: set_enabled
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  _delay: 0
+--- !u!114 &8649827228240358538
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1423321630255321350}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88a1a2641465ff84a8aa0c6879891f1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _triggersHolder:
+    _triggerSet: {fileID: 0}
+    _triggers: []
+  _secsDely: 3
+  _unityEvent:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1968664103159648212}
         m_MethodName: SetActive
         m_Mode: 6
         m_Arguments:
